@@ -3,6 +3,7 @@ from Crypto.Cipher import AES
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA256
 from base64 import b64decode, b64encode
+import signatures
 import socket
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,10 +25,6 @@ aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
 plaintext = aes_obj.decrypt(ciphertext_aes)
 # Verify messages
 cli_pub_keyfile = open("public.pem", "r").read()
-cli_pub_key = RSA.importKey(cli_pub_keyfile)
-signer = PKCS1_v1_5.new(cli_pub_key)
-digest = SHA256.new()
-digest.update(plaintext)
-verified = signer.verify(digest, b64decode(signature))
+verified = signatures.verify(cli_pub_keyfile, plaintext, signature)
 print "server got: " + plaintext + "\nVerified: " + str(verified)
 clientsocket.close()
