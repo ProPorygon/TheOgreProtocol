@@ -19,7 +19,7 @@ pad_size = 128 - len(message) % 128
 if pad_size == 0:
     pad_size = 128
 message += "0" * pad_size
-# Sign message
+# Sign message (keyfile only useful for single processs testing, replace later with generated key per session)
 keyfile = open('private.pem', 'r').read()
 signature = signatures.sign(keyfile, message)
 # Initialize AES
