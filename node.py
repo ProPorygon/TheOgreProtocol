@@ -19,6 +19,7 @@ while True:
     # Initialize AES
     aes_key = randfile.read(32)
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
+    # Instead of generating the aes key here, the client should generate it and encrypt using this relay's public key
     ciphertext_rsa = key.encrypt(aes_key, key.publickey())
     # Send key
     s.send(ciphertext_rsa[0])
@@ -28,4 +29,5 @@ while True:
     next_addr = message[18]
     host = message.split(":")[0]
     port = message.split(":")[1] # Still need to cut off the padding at end
-    data = [19,len(message)-]
+    data = [19,len(message)-e]
+    # Send data to next host and port
