@@ -9,38 +9,42 @@ def pad_message(message):
     :param message: string to be padded
     :return: padded message
     """
-    pad_size = 128 - len(message) % 128
+    pad_size = 16 - (len(message) % 16)
     if pad_size == 0:
-        pad_size = 128
-    message += "0" * pad_size
+        pad_size = 16
+    message += chr(pad_size) * pad_size
     return message
 
+def unpad_message(message):
+    return message[:-ord(message[-1])]
+
+
 #uses the PUBLIC key in 'key' to encrypt
-def wrap_message(message, key):
+def wrap_message(message, rsa_key):
     #generate AES key, 'k'
     #encrypt message (param 'message') with AES using 'k'
     #encrypt 'k' with RSA key (param 'key')
     #assemble final blob, then return it
     randfile = Random.new()
-    aes_key = randfile.read(32)
+    aes_key = randfile.read(16) #AES-128
+
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     ciphertext_aes = aes_obj.encrypt(pad_message(message))
-    rsa_key = RSA.importKey(key)
-    ciphertext_rsa = rsa_key.encrypt(aes_key)
+    ciphertext_rsa = rsa_key.encrypt(aes_key, rsa_key.publickey())[0]
     blob = ciphertext_rsa + ciphertext_aes
     return blob
 
-def unwrap_message(blob, key):
+def unwrap_message(blob, rsa_key):
     #seperate blob into data and encrypted AES key
     #decrypt AES key using given RSA key
     #decrypt data using the AES key
     #return the unencrypted orignal blob
-    ciphertext_rsa = blob[0,255]
-    ciphertext_aes = blob[256,len(blob)-1]
-    rsa_key = RSA.importKey(key)
+    ciphertext_rsa = blob[0:128]
+    ciphertext_aes = blob[128:len(blob)]
     aes_key = rsa_key.decrypt(ciphertext_rsa)
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext_aes)
+    message = unpad_message(message)
     return message
 
 def route_unwrap(blob, key):
@@ -90,4 +94,3 @@ def recvn(fromsocket, length):
         recvbuf += newdata
         recv_so_far += bytesrecvd
     return recvbuf
-    
