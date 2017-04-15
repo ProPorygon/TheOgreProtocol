@@ -1,6 +1,7 @@
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
+import struct
 
 def pad_message(message):
     """
@@ -14,6 +15,7 @@ def pad_message(message):
     message += "0" * pad_size
     return message
 
+#uses the PUBLIC key in 'key' to encrypt
 def wrap_message(message, key):
     #generate AES key, 'k'
     #encrypt message (param 'message') with AES using 'k'
@@ -44,3 +46,48 @@ def unwrap_message(blob, key):
 def route_unwrap(blob, key):
     packed = unwrap_message(blob, key)
     return packed[0,21],packed[22,len(blob)-1]
+
+#assumes 'message' is no longer than 4096 bytes
+def send_message_with_length_prefix(tosocket, message):
+    prefix = struct.pack("!i", len(message))
+    bytessent = sendn(tosocket, prefix) #4 bytes, should send all of it in one go
+    if bytessent == 0:
+        return False
+    bytessent = sendn(tosocket, message)
+    if bytessent == 0:
+        return False
+    return True
+
+# returns an empty string if the connection closed on the other end
+def recv_message_with_length_prefix(fromsocket):
+    packedlen = recvn(fromsocket, 4)
+    if packedlen == "":
+        return ""
+    length = struct.unpack("!i", packedlen)
+    message = recvn(fromsocket, length)
+    return message
+
+
+#socket on the other end has closed if this returns 0
+def sendn(tosocket, message):
+    length = len(message)
+    sent_so_far = 0
+    while length > sent_so_far:
+        bytessent = tosocket.send(message[sent_so_far:])
+        if bytessent == 0:
+            return 0
+        sent_so_far += bytessent
+    return length
+
+def recvn(fromsocket, length):
+    recv_so_far = 0
+    recvbuf = ""
+    while length > recv_so_far:
+        newdata = fromsocket.recv(length - recv_so_far)
+        bytesrecvd = len(newdata)
+        if bytesrecvd == 0:
+            return ""
+        recvbuf += newdata
+        recv_so_far += bytesrecvd
+    return recvbuf
+    
