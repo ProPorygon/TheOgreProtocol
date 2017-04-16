@@ -18,15 +18,22 @@ def pad_message(message):
 def unpad_message(message):
     return message[:-ord(message[-1])]
 
+def add_layer(message, aes_key):
+    aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
+    ciphertext = aes_obj.encrypt(pad_message(message))
+    return ciphertext
+
+def peel_layer(ciphertext, aes_key):
+    aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
+    message = aes_obj.decrypt(ciphertext)
+    return message
 
 #uses the PUBLIC key in 'key' to encrypt
-def wrap_message(message, rsa_key):
+def wrap_message(message, rsa_key, aes_key):
     #generate AES key, 'k'
     #encrypt message (param 'message') with AES using 'k'
     #encrypt 'k' with RSA key (param 'key')
     #assemble final blob, then return it
-    randfile = Random.new()
-    aes_key = randfile.read(16) #AES-128
 
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     ciphertext_aes = aes_obj.encrypt(pad_message(message))
@@ -39,13 +46,14 @@ def unwrap_message(blob, rsa_key):
     #decrypt AES key using given RSA key
     #decrypt data using the AES key
     #return the unencrypted orignal blob
+
     ciphertext_rsa = blob[0:128]
     ciphertext_aes = blob[128:len(blob)]
     aes_key = rsa_key.decrypt(ciphertext_rsa)
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext_aes)
     message = unpad_message(message)
-    return message
+    return message, aes_key
 
 def route_unwrap(blob, key):
     packed = unwrap_message(blob, key)
