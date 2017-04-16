@@ -9,36 +9,35 @@ import sys
 if len(sys.argv) != 2:
     print "Usage: python node.py PORT_NUMBER\n"
     sys.exit(1)
+
 # Set up listening server
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind(('127.0.0.1', sys.argv[1]))
 s.listen(1)
 randfile = Random.new()
 
+# Register self with directory authority, generate RSA keys
+
 # Listen for connections
 while True:
-    (clientsocket, addr) = s.accept()
+    clientsocket, addr = s.accept()
+    # THREAD BOUNDARY
     # Get Client's public key
     publickey = s.recv(500)
     key = RSA.importKey(publickey)
-    # Initialize AES
-    aes_key = randfile.read(32)
-    aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
-    # Instead of generating the aes key here, the client should generate it and encrypt using this relay's public key
-    ciphertext_rsa = key.encrypt(aes_key, key.publickey())
-    # Send key
-    s.send(ciphertext_rsa[0])
-    # Receive and unpack message
-    ciphertext_aes = s.recv(256)
-    message = aes_obj.decrypt(ciphertext_aes) # Remove padding
-    next_addr = message[18]
-    host = message.split(":")[0]
-    port = message.split(":")[1] # Still need to cut off the padding at end
-    data = [19,len(message)-e]
-    # Send data to next host and port
+    # need this node to have its own key pair
+    routemessage = recv_message_with_length_prefix(clientsocket)
+    if routemessage == "":
+        #kill this thread
+    aeskey, hostport, nextmessage = peelRoute(message, mykey)
+    nexthost, nextport = utils.unpackHostPort(hostport)
+    nexthop = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    nexthop.connect((nexthost, nextport))
+    utils.send_message_with_length_prefix(nexthop, nextmessage)
+    #spawn forwarding and backwarding threads here
 
 
-def forwardingLoop(prevhop, nexthop, myprivkey):
+def forwardingLoop(prevhop, nexthop, mykey):
     while True:
         message = utils.recv_message_with_length_prefix(prevhop)
         if message == "":
@@ -47,14 +46,14 @@ def forwardingLoop(prevhop, nexthop, myprivkey):
             nexthop.close()
             return
         # unwrap the message or something - in spec
-        message = utils.unwrap_message(message, myprivkey)
+        message = utils.peel_layer(message, aeskey)
         bytessent = utils.send_message_with_length_prefix(nexthop, message)
         if bytessent == 0:
             prevhop.close()
             nexthop.close()
             return
 
-def backwardingLoop(prevhop, nexthop, myprivkey, prevpubkey):
+def backwardingLoop(prevhop, nexthop, aeskey):
     while True:
         message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
@@ -63,11 +62,15 @@ def backwardingLoop(prevhop, nexthop, myprivkey, prevpubkey):
             nexthop.close()
             return
         # wrap the message or something - in spec
-        message = utils.unwrap_message(message, myprivkey)
-        message = utils.wrap_message(message, myprivkey)#don't have this function yet
-        message = utils.wrap_message(message, prevkey)
+        message = utils.add_layer(message, aeskey)
         bytessent = utils.send_message_with_length_prefix(prevhop, message)
         if bytessent == 0:
             prevhop.close()
             nexthop.close()
             return
+
+def peelRoute(message, mykey):
+    message, aeskey = utils.unwrap_message(message, mykey)
+    hostport = message[:8]
+    nextmessage = message[8:]
+    return (aeskey, hostport, nextmessage)

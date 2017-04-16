@@ -19,6 +19,7 @@ def unpad_message(message):
     return message[:-ord(message[-1])]
 
 def add_layer(message, aes_key):
+    #TODO: modify protocol so as not to add unnecessary padding blocks
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     ciphertext = aes_obj.encrypt(pad_message(message))
     return ciphertext
