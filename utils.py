@@ -94,3 +94,18 @@ def recvn(fromsocket, length):
         recvbuf += newdata
         recv_so_far += bytesrecvd
     return recvbuf
+
+def packHostPort(ip, port):
+    return socket.inet_aton(ip) + struct.pack("!i", port)
+
+def unpackHostPort(packed):
+    return (socket.inet_ntoa(packed[:4]), struct.unpack("!i", packed[4:]))
+
+#hoplist is a list of tuples of the form (packedhop, RSA key object)
+def packRoute(hoplist):
+    message = ""
+    for i in range (0, len(hoplist)):
+        idx = len(hoplist) - 1 - i
+        message = hoplist[idx][0] + message
+        message = wrap_message(message, hoplist[idx][1])
+    return message
