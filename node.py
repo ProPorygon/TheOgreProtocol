@@ -37,7 +37,7 @@ while True:
     #spawn forwarding and backwarding threads here
 
 
-def forwardingLoop(prevhop, nexthop, mykey):
+def forwardingLoop(prevhop, nexthop, aeskey):
     while True:
         message = utils.recv_message_with_length_prefix(prevhop)
         if message == "":

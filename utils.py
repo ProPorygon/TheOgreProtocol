@@ -9,10 +9,12 @@ def pad_message(message):
     :param message: string to be padded
     :return: padded message
     """
-    pad_size = 16 - (len(message) % 16)
-    if pad_size == 0:
+    if (len(message)%16 != 0){
+        pad_size = 16 - (len(message) % 16)
+        if pad_size == 0:
         pad_size = 16
-    message += chr(pad_size) * pad_size
+        message += chr(pad_size) * pad_size
+    }
     return message
 
 def unpad_message(message):
@@ -55,10 +57,6 @@ def unwrap_message(blob, rsa_key):
     message = aes_obj.decrypt(ciphertext_aes)
     message = unpad_message(message)
     return message, aes_key
-
-def route_unwrap(blob, key):
-    packed = unwrap_message(blob, key)
-    return packed[0,21],packed[22,len(blob)-1]
 
 #assumes 'message' is no longer than 4096 bytes
 def send_message_with_length_prefix(tosocket, message):
