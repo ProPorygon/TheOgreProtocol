@@ -18,6 +18,8 @@ randfile = Random.new()
 
 # Register self with directory authority, generate RSA keys
 
+
+#TODO replace this old code
 # Listen for connections
 while True:
     clientsocket, addr = s.accept()
@@ -37,7 +39,7 @@ while True:
     #spawn forwarding and backwarding threads here
 
 
-def forwardingLoop(prevhop, nexthop, mykey):
+def forwardingLoop(prevhop, nexthop, aeskey):
     while True:
         message = utils.recv_message_with_length_prefix(prevhop)
         if message == "":
