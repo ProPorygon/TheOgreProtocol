@@ -20,17 +20,17 @@ da_file = open('dir_auth_priv_key.pem','r')
 da_mykey = da_file.readline()
 
 #read in IP and Port from command line args
-if len(sys.argv > 3):
-    da_IP = sys.argv[1]
-    da_port = sys.argv[2]
+da_IP = "127.0.0.1"
+if len(sys.argv) > 1:
+    da_port = sys.argv[1]
 else:
-    print "No DA IP/Port Specified!! Exiting..."
+    print "No DA Port Specified!! Exiting..."
     quit()
 
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((da_IP, int(da_IP)))
+s.bind((da_IP, int(da_port)))
 s.listen(1)
 
 while True:
@@ -50,18 +50,18 @@ while True:
     if request_type == 'n': #relay node
         node_addr = utils.packHostPort(addr[0],addr[1])
         key = utils.recvn(clientsocket,RSA_KEY_SIZE)
-        if key = "":
+        if key == "":
             clientsocket.close()
         relay_nodes[node_addr] = key
 
-    else if request_type == 'e': #exit node
+    elif request_type == 'e': #exit node
         node_addr = utils.packHostPort(addr[0],addr[1])
         key = utils.recvn(clientsocket,RSA_KEY_SIZE)
-        if key = "":
+        if key == "":
             clientsocket.close()
         exit_nodes[node_addr] = key
 
-    else if request_type == 'r': #route
+    elif request_type == 'r': #route
         num_nodes = utils.recvn(clientsocket,4)
         num_nodes = struct.unpack("!i", num_nodes)
         relay_list = []
@@ -90,7 +90,7 @@ while True:
     s.send(ciphertext_aes)
 """
 
-def construct_route(relays,exit)
+def construct_route(relays,exit):
     message = ""
     for a,b in relays:
         message += a+b
