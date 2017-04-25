@@ -13,20 +13,31 @@ if len(sys.argv) != 4:
 
 # Set up listening server
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('127.0.0.1', sys.argv[1])) #loopback only for now
+myip = '127.0.0.1' #loopback only for now
+s.bind((myip, int(sys.argv[1])))
 s.listen(1)
 randfile = Random.new()
 
-# Register self with directory authority, generate RSA keys
+# Generate RSA keys, register self with directory authority
 mykey = RSA.generate(1024)
-#REGISTER SELF HERE
+dir_auth = socket.socket(AF_INET, socket.SOCK_STREAM)
+dir_auth.connect((sys.argv[2], sys.argv[3]))
+result = dir_auth.send("n") #send an 'e' for exit node here, 'n' for relay node
+if result == 0:
+    print "The directory authority went offline during registration! Terminating relay process..."
+    sys.exit(1)
+result = dir_auth.sendn(mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+if result == 0:
+    print "The directory authority went offline during registration! Terminating relay process..."
+dir_auth.close()
 
+print "Successfully registered! Listening for client connections..."
 
 #TODO replace this old code
 # Listen for connections
 while True:
     clientsocket, addr = s.accept()
-    threading.Thread(target=startSession, args=(clientsocket))
+    threading.Thread(target=startSession, args=(clientsocket)).start()
 
 def startSession(prevhop):
     # THREAD BOUNDARY

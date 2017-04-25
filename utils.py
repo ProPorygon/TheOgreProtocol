@@ -9,12 +9,11 @@ def pad_message(message):
     :param message: string to be padded
     :return: padded message
     """
-    if (len(message)%16 != 0){
+    if (len(message)%16 != 0):
         pad_size = 16 - (len(message) % 16)
         if pad_size == 0:
-        pad_size = 16
+            pad_size = 16
         message += chr(pad_size) * pad_size
-    }
     return message
 
 def unpad_message(message):
