@@ -18,6 +18,8 @@ randfile = Random.new()
 
 # Register self with directory authority, generate RSA keys
 
+
+#TODO replace this old code
 # Listen for connections
 while True:
     clientsocket, addr = s.accept()
