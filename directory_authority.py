@@ -6,6 +6,8 @@ import random
 import utils
 import sys
 
+RSA_KEY_SIZE = 212
+
 relay_nodes = {}
 
 exit_nodes = {}
@@ -28,7 +30,7 @@ else:
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((da_IP, da_IP.int()))
+s.bind((da_IP, int(da_IP)))
 s.listen(1)
 
 while True:
@@ -41,23 +43,27 @@ while True:
     
     (clientsocket, addr) = s.accept()
 
-    request_type = s.recv(1);
+    request_type = clientsocket.recv(1);
+    if request_type == "":
+        clientsocket.close()
+
     if request_type == 'n': #relay node
-        ip = utils.recvn(s,4)
-        port = utils.recvn(s,4)
-        key = utils.recvn(s,128)
-        relay_nodes[(ip,port)] = key
-        #send a confirmation back?
+        node_addr = utils.packHostPort(addr[0],addr[1])
+        key = utils.recvn(clientsocket,RSA_KEY_SIZE)
+        if key = "":
+            clientsocket.close()
+        relay_nodes[node_addr] = key
 
     else if request_type == 'e': #exit node
-        ip = utils.recvn(s,4)
-        port = utils.recvn(s,4)
-        key = utils.recvn(s,128)
-        exit_nodes[(ip,port)] = key;
-        #send a confirmation back?
+        node_addr = utils.packHostPort(addr[0],addr[1])
+        key = utils.recvn(clientsocket,RSA_KEY_SIZE)
+        if key = "":
+            clientsocket.close()
+        exit_nodes[node_addr] = key
 
     else if request_type == 'r': #route
-        num_nodes = struct.unpack("!i", utils.recvn(s,4))
+        num_nodes = utils.recvn(clientsocket,4)
+        num_nodes = struct.unpack("!i", num_nodes)
         relay_list = []
         if (num_nodes > 1):
             relay_list = random_sample(relay_nodes.items(),num_nodes-1)
@@ -65,8 +71,9 @@ while True:
         route_message = construct_route(relay_list,exit)
         aes_key = randfile.read(32)
         blob = utils.wrap_message(route_message, da_mykey, aes_key)
-        utils.sendn(s,blob)
+        utils.sendn(clientsocket,blob)
 
+    clientsocket.close()
 
 """Very old stuff, kept around for reference
     publickey = s.recv(500)
@@ -85,7 +92,7 @@ while True:
 
 def construct_route(relays,exit)
     message = ""
-    for (a,b),c in relays:
-        message+=(a+b+c)
-    message+=(exit[0][0]+exit[0][1]+exit[1])
+    for a,b in relays:
+        message += a+b
+    message += exit[0]+exit[1]
     return message
