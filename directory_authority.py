@@ -4,23 +4,41 @@ from Crypto.Cipher import AES
 import socket
 import random
 import utils
+import sys
 
 relay_nodes = {}
 
 exit_nodes = {}
 
 randfile = Random.new()
+
+#get the DA identity from a 3-line text file
+#TODO Create dir_auth_priv_key.pem
+da_file = open('dir_auth_priv_key.pem','r')
+da_mykey = da_file.readline()
+
+#read in IP and Port from command line args
+if len(sys.argv > 3):
+    da_IP = sys.argv[1]
+    da_port = sys.argv[2]
+else:
+    print "No DA IP/Port Specified!! Exiting..."
+    quit()
+
+
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('127.0.0.1', 6066))
+s.bind((da_IP, da_IP.int()))
 s.listen(1)
 
 while True:
-    ##TODO Add AES/RSA Encryption, read in AD IP, port, and private key from a local file
+    ##TODO Add AES/RSA Encryption
     
     #listen for connections and serve requests:
         #Register relay nodes with IP, Port, PublicKey in NodeDict
         #Register exit nodes with IP, Port PublicKey in ExitDict
         #Provide route of N nodes and 1 exit node, with IP, Port, PublicKey for every node
+    
     (clientsocket, addr) = s.accept()
 
     request_type = s.recv(1);
@@ -45,7 +63,9 @@ while True:
             relay_list = random_sample(relay_nodes.items(),num_nodes-1)
         exit = random.sample(exit_nodes.items(),1)
         route_message = construct_route(relay_list,exit)
-        utils.sendn(s,route_message)
+        aes_key = randfile.read(32)
+        blob = utils.wrap_message(route_message, da_mykey, aes_key)
+        utils.sendn(s,blob)
 
 
 """Very old stuff, kept around for reference

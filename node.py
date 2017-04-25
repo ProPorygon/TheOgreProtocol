@@ -21,6 +21,8 @@ randfile = Random.new()
 mykey = RSA.generate(1024)
 #REGISTER SELF HERE
 
+
+#TODO replace this old code
 # Listen for connections
 while True:
     clientsocket, addr = s.accept()
