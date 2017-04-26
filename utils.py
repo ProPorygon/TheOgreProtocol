@@ -2,6 +2,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
 import struct
+import socket
 
 def pad_message(message):
     """
@@ -9,7 +10,7 @@ def pad_message(message):
     :param message: string to be padded
     :return: padded message
     """
-    if (len(message)%16 != 0):
+    if (len(message) % 16 != 0):
         pad_size = 16 - (len(message) % 16)
         if pad_size == 0:
             pad_size = 16
@@ -115,3 +116,30 @@ def packRoute(hoplist):
         message = hoplist[idx][0] + message
         message = wrap_message(message, hoplist[idx][1])
     return message
+
+
+def wrap_all_messages(hoplist):
+    randfile = Random.new()
+    wrapped_message = ""
+    aes_key_list = []
+    for elem in hoplist:
+        # have some way of getting each, probably from directory authority
+        elem_aes_key = randfile.read(32)
+        aes_key_list.append(elem_aes_key)
+        packedroute = packHostPort(elem[0], elem[1])
+        wrapped_message = packedroute + wrapped_message
+        wrapped_message = wrap_message(wrapped_message, elem[2], elem_aes_key)
+    return wrapped_message, aes_key_list
+
+
+def add_all_layers(aes_key_list, message):
+    for key in aes_key_list:
+        message = add_layer(message, key)
+    return message
+
+
+def peel_all_layers(aes_key_list, response):
+    for i in reversed(range(0, len(aes_key_list))):
+        response = peel_layer(response, aes_key_list[i])
+    response = unpad_message(response)
+    return response

@@ -27,26 +27,15 @@ hoplist = []  # Replace this with processed route and key data
 next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 next_host = (hoplist[0][0], hoplist[0][1])
 next_s.connect(next_host)
-wrapped_message = ""
-randfile = Random.new()
-aes_key_list = []
 # Generate wrapped message
-for elem in hoplist:
-    # have some way of getting each, probably from directory authority
-    elem_aes_key = randfile.read(32)
-    aes_key_list.append(elem_aes_key)
-    packedroute = utils.packHostPort(elem[0], elem[1])
-    wrapped_message += packedroute
-    wrapped_message = utils.wrap_message(wrapped_message, elem[2], elem_aes_key)
+wrapped_message, aes_key_list = utils.wrap_all_messages(hoplist)
 utils.send_message_with_length_prefix(next_s, wrapped_message)
 
 while(True):
     message = raw_input()
-    for key in aes_key_list:
-        message = utils.add_layer(message, key)
+    utils.add_all_layers(aes_key_list, message)
     next_s.send(message)
     utils.send_message_with_length_prefix(next_s, message)
     response = utils.recv_message_with_length_prefix(next_s)
-    for i in reversed(range(0, len(aes_key_list))):
-        response = utils.peel_layer(response, aes_key_list[i])
+    response = utils.peel_all_layers(aes_key_list, response)
     print response

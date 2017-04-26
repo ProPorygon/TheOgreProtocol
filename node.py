@@ -7,37 +7,38 @@ import utils
 import sys
 import threading
 
-if len(sys.argv) != 4:
-    print "Usage: python node.py PORT_NUMBER DIR_AUTH_IP DIR_AUTH_PORT\n"
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 4:
+        print "Usage: python node.py PORT_NUMBER DIR_AUTH_IP DIR_AUTH_PORT\n"
+        sys.exit(1)
 
-# Set up listening server
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-myip = '127.0.0.1' #loopback only for now
-s.bind((myip, int(sys.argv[1])))
-s.listen(1)
-randfile = Random.new()
+    # Set up listening server
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    myip = '127.0.0.1' #loopback only for now
+    s.bind((myip, int(sys.argv[1])))
+    s.listen(1)
+    randfile = Random.new()
 
-# Generate RSA keys, register self with directory authority
-mykey = RSA.generate(1024)
-dir_auth = socket.socket(AF_INET, socket.SOCK_STREAM)
-dir_auth.connect((sys.argv[2], sys.argv[3]))
-result = dir_auth.send("n") #send an 'e' for exit node here, 'n' for relay node
-if result == 0:
-    print "The directory authority went offline during registration! Terminating relay process..."
-    sys.exit(1)
-result = dir_auth.sendn(mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
-if result == 0:
-    print "The directory authority went offline during registration! Terminating relay process..."
-dir_auth.close()
+    # Generate RSA keys, register self with directory authority
+    mykey = RSA.generate(1024)
+    dir_auth = socket.socket(AF_INET, socket.SOCK_STREAM)
+    dir_auth.connect((sys.argv[2], sys.argv[3]))
+    result = dir_auth.send("n") #send an 'e' for exit node here, 'n' for relay node
+    if result == 0:
+        print "The directory authority went offline during registration! Terminating relay process..."
+        sys.exit(1)
+    result = dir_auth.sendn(mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+    if result == 0:
+        print "The directory authority went offline during registration! Terminating relay process..."
+    dir_auth.close()
 
-print "Successfully registered! Listening for client connections..."
+    print "Successfully registered! Listening for client connections..."
 
-#TODO replace this old code
-# Listen for connections
-while True:
-    clientsocket, addr = s.accept()
-    threading.Thread(target=startSession, args=(clientsocket)).start()
+    #TODO replace this old code
+    # Listen for connections
+    while True:
+        clientsocket, addr = s.accept()
+        threading.Thread(target=startSession, args=(clientsocket)).start()
 
 def startSession(prevhop):
     # THREAD BOUNDARY
@@ -101,3 +102,7 @@ def peelRoute(message, mykey):
     hostport = message[:8]
     nextmessage = message[8:]
     return (aeskey, hostport, nextmessage)
+
+
+if __name__ == "__main__":
+    main()
