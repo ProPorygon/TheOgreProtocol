@@ -53,6 +53,7 @@ while True:
         if key == "":
             clientsocket.close()
         relay_nodes[node_addr] = key
+        print "directory authority successfully registered a relay node!"
 
     elif request_type == 'e': #exit node
         node_addr = utils.packHostPort(addr[0],addr[1])

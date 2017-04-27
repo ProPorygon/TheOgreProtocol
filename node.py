@@ -21,13 +21,14 @@ def main():
 
     # Generate RSA keys, register self with directory authority
     mykey = RSA.generate(1024)
-    dir_auth = socket.socket(AF_INET, socket.SOCK_STREAM)
-    dir_auth.connect((sys.argv[2], sys.argv[3]))
+    dir_auth = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    dir_auth.connect((sys.argv[2], int(sys.argv[3])))
     result = dir_auth.send("n") #send an 'e' for exit node here, 'n' for relay node
     if result == 0:
         print "The directory authority went offline during registration! Terminating relay process..."
         sys.exit(1)
-    result = dir_auth.sendn(mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+    result = utils.sendn(dir_auth, mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+    # print result
     if result == 0:
         print "The directory authority went offline during registration! Terminating relay process..."
     dir_auth.close()
