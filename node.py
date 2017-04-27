@@ -6,24 +6,33 @@ from signatures import sign,verify
 import utils
 import sys
 import threading
+import argparse
 
 def main():
-    if len(sys.argv) != 4:
-        print "Usage: python node.py PORT_NUMBER DIR_AUTH_IP DIR_AUTH_PORT\n"
-        sys.exit(1)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exit", help="run as an exit node", action="store_true")
+    parser.add_argument("portno", type=int, help="the port this node should listen on")
+    parser.add_argument("dir_auth_ip", help="the ip address of the directory authority")
+    parser.add_argument("dir_auth_port", type=int, help="the port number of the directory authority")
+    args = parser.parse_args()
 
     # Set up listening server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     myip = '127.0.0.1' #loopback only for now
-    s.bind((myip, int(sys.argv[1])))
+    s.bind((myip, args.portno))
     s.listen(1)
     randfile = Random.new()
 
     # Generate RSA keys, register self with directory authority
     mykey = RSA.generate(1024)
     dir_auth = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    dir_auth.connect((sys.argv[2], int(sys.argv[3])))
-    result = dir_auth.send("n") #send an 'e' for exit node here, 'n' for relay node
+    dir_auth.connect((args.dir_auth_ip, args.dir_auth_port))
+    result = 0
+    # send an 'e' for exit node here, 'n' for relay node
+    if args.exit:
+        result = dir_auth.send("e")
+    else:
+        result = dir_auth.send("n")
     if result == 0:
         print "The directory authority went offline during registration! Terminating relay process..."
         sys.exit(1)
@@ -55,7 +64,8 @@ def startSession(prevhop):
     nexthost, nextport = utils.unpackHostPort(hostport)
     nexthop = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     nexthop.connect((nexthost, nextport))
-    utils.send_message_with_length_prefix(nexthop, nextmessage)
+    if nextmessage != "":
+        utils.send_message_with_length_prefix(nexthop, nextmessage)
     #spawn forwarding and backwarding threads here
     fwd = threading.Thread(target=forwardingLoop, args=(prevhop, nexthop, aeskey))
     bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey))
@@ -101,7 +111,7 @@ def backwardingLoop(prevhop, nexthop, aeskey):
 def peelRoute(message, mykey):
     message, aeskey = utils.unwrap_message(message, mykey)
     hostport = message[:8]
-    nextmessage = message[8:]
+    nextmessage = message[8:] #if nextmessage is an empty string, I'm an exit node
     return (aeskey, hostport, nextmessage)
 
 

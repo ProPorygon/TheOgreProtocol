@@ -30,7 +30,7 @@ next_s.connect(next_host)
 wrapped_message, aes_key_list = utils.wrap_all_messages(hoplist)
 utils.send_message_with_length_prefix(next_s, wrapped_message)
 
-while(True):
+while True:
     message = raw_input()
     utils.add_all_layers(aes_key_list, message)
     next_s.send(message)

@@ -61,6 +61,7 @@ while True:
         if key == "":
             clientsocket.close()
         exit_nodes[node_addr] = key
+        print "directory authority successfully registered an exit node!"
 
     elif request_type == 'r': #route
         num_nodes = utils.recvn(clientsocket,4)
