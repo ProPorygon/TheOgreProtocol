@@ -143,3 +143,13 @@ def peel_all_layers(aes_key_list, response):
         response = peel_layer(response, aes_key_list[i])
     response = unpad_message(response)
     return response
+
+
+def process_route(data):
+    hoplist = []
+    while data != "":
+        rsa_key = ""
+        hostport = unpackHostPort(data[:8])
+        hoplist.append(hostport[0], hostport[1], rsa_key)
+        data = data[:8]
+    return hoplist
