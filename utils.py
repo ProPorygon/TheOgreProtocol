@@ -3,6 +3,9 @@ from Crypto.Cipher import AES
 from Crypto import Random
 import struct
 import socket
+import signal
+import os
+import sys
 
 def pad_message(message):
     """
@@ -24,9 +27,12 @@ def add_layer(message, aes_key):
     #TODO: modify protocol so as not to add unnecessary padding blocks
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     ciphertext = aes_obj.encrypt(pad_message(message))
+    print "add_layer: length of ciphertext is " + str(len(ciphertext))
     return ciphertext
 
 def peel_layer(ciphertext, aes_key):
+    print str(os.getpid()) + 'tried to unpeel\nPeeling ciphertext: ' + ciphertext
+    print "peel_layer: length of ciphertext is " + str(len(ciphertext))
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext)
     return message
@@ -56,11 +62,12 @@ def unwrap_message(blob, rsa_key):
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext_aes)
     message = unpad_message(message)
+    print "length of aes key: " + str(len(aes_key))
     return message, aes_key
 
 #assumes 'message' is no longer than 4096 bytes
 def send_message_with_length_prefix(tosocket, message):
-    prefix = struct.pack("!i", len(message))
+    prefix = struct.pack("!I", len(message))
     bytessent = sendn(tosocket, prefix) #4 bytes, should send all of it in one go
     if bytessent == 0:
         return False
@@ -74,7 +81,7 @@ def recv_message_with_length_prefix(fromsocket):
     packedlen = recvn(fromsocket, 4)
     if packedlen == "":
         return ""
-    length = struct.unpack("!i", packedlen)
+    length = struct.unpack("!I", packedlen)[0]
     message = recvn(fromsocket, length)
     return message
 
@@ -106,7 +113,7 @@ def packHostPort(ip, port):
     return socket.inet_aton(ip) + struct.pack("!i", port)
 
 def unpackHostPort(packed):
-    return (socket.inet_ntoa(packed[:4]), struct.unpack("!i", packed[4:]))
+    return (socket.inet_ntoa(packed[:4]), struct.unpack("!i", packed[4:])[0])
 
 #hoplist is a list of tuples of the form (packedhop, RSA key object)
 def packRoute(hoplist):
@@ -117,24 +124,27 @@ def packRoute(hoplist):
         message = wrap_message(message, hoplist[idx][1])
     return message
 
-
-def wrap_all_messages(hoplist):
+#destination is a pre-packed hostport string
+def wrap_all_messages(hoplist, destination):
     randfile = Random.new()
-    wrapped_message = ""
+    wrapped_message = destination
     aes_key_list = []
-    for elem in hoplist:
+    packedroute = ""
+    for i in range(0, len(hoplist)):
         # have some way of getting each, probably from directory authority
         elem_aes_key = randfile.read(32)
         aes_key_list.append(elem_aes_key)
-        packedroute = packHostPort(elem[0], elem[1])
+        if i != 0:
+            packedroute = packHostPort(hoplist[i-1][0], hoplist[i-1][1])
         wrapped_message = packedroute + wrapped_message
-        wrapped_message = wrap_message(wrapped_message, elem[2], elem_aes_key)
+        wrapped_message = wrap_message(wrapped_message, hoplist[i][2], elem_aes_key)
     return wrapped_message, aes_key_list
 
 
 def add_all_layers(aes_key_list, message):
     for key in aes_key_list:
         message = add_layer(message, key)
+    print "The newly encrypted message is " + message
     return message
 
 
@@ -153,3 +163,8 @@ def process_route(data):
         hoplist.append(hostport[0], hostport[1], rsa_key)
         data = data[:8]
     return hoplist
+
+def signal_handler(received_signal, frame):
+    # Do stuff
+    os.killpg(os.getpgid(0), signal.SIGINT)
+    sys.exit(0)

@@ -10,6 +10,6 @@ args = parser.parse_args()
 
 os.system("python directory_authority.py " + str(args.dir_auth_port) + " &")
 #subprocess.call(["python", "directory_authority.py", "7077"])
-os.system("python node.py " + str(args.portno) + " 127.0.0.1 " + str(args.dir_auth_port) + " --exit")
+os.system("python node.py " + str(args.portno) + " 127.0.0.1 " + str(args.dir_auth_port) + " --exit &")
 
 print "launcher done"
