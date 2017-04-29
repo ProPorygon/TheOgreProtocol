@@ -49,7 +49,8 @@ def main():
         if result == 0:
             print "The directory authority went offline during registration! Terminating relay process..."
             sys.exit(1)
-        result = utils.sendn(dir_auth, mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+        msg = utils.packHostPort(myip,args.portno) + mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1)
+        result = utils.sendn(dir_auth, msg)
         # print result
         if result == 0:
             print "The directory authority went offline during registration! Terminating relay process..."
