@@ -67,7 +67,7 @@ class TestMethods(unittest.TestCase):
         f.close()
         mykey = RSA.importKey(public)
 
-        portno = [5266, 5267, 5268]
+        portno = [5766, 5767, 5768]
         hoplist = []
         dir_no_auth = 3
 
@@ -77,7 +77,7 @@ class TestMethods(unittest.TestCase):
             hoplist.append(("127.0.0.1", portno[i], mykey))
             os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --exit --dbg &")
             time.sleep(1)
-        client.run_client(hoplist, utils.packHostPort("127.0.0.1", 5269))
+        client.run_client(hoplist, utils.packHostPort("127.0.0.1", 5769))
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, utils.signal_handler)

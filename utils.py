@@ -27,12 +27,12 @@ def add_layer(message, aes_key):
     #TODO: modify protocol so as not to add unnecessary padding blocks
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     ciphertext = aes_obj.encrypt(pad_message(message))
-    print "add_layer: length of ciphertext is " + str(len(ciphertext))
+    #print "add_layer: length of ciphertext is " + str(len(ciphertext))
     return ciphertext
 
 def peel_layer(ciphertext, aes_key):
-    print str(os.getpid()) + 'tried to unpeel\nPeeling ciphertext: ' + ciphertext
-    print "peel_layer: length of ciphertext is " + str(len(ciphertext))
+    #print str(os.getpid()) + 'tried to unpeel\nPeeling ciphertext: ' + ciphertext
+    #print "peel_layer: length of ciphertext is " + str(len(ciphertext))
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext)
     return message
@@ -62,7 +62,7 @@ def unwrap_message(blob, rsa_key):
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
     message = aes_obj.decrypt(ciphertext_aes)
     message = unpad_message(message)
-    print "length of aes key: " + str(len(aes_key))
+    #print "length of aes key: " + str(len(aes_key))
     return message, aes_key
 
 #assumes 'message' is no longer than 4096 bytes
@@ -144,7 +144,7 @@ def wrap_all_messages(hoplist, destination):
 def add_all_layers(aes_key_list, message):
     for key in aes_key_list:
         message = add_layer(message, key)
-    print "The newly encrypted message is " + message
+    #print "The newly encrypted message is " + message
     return message
 
 

@@ -59,13 +59,17 @@ def main():
 
     #TODO replace this old code
     # Listen for connections
-    while True:
+    maxsessions = 1
+    numsessions = 0
+    #The while condition here dictates how long the node is up
+    while numsessions < maxsessions:#True:
         clientsocket, addr = s.accept()
         print "New session starting on process " + str(os.getpid())
         threading.Thread(target=startSession, args=(clientsocket, mykey)).start()
+        numsessions += 1
 
 def startSession(prevhop, mykey):
-    print "Node got contact from client! Starting session!"
+    #print "Node got contact from client! Starting session!"
     # THREAD BOUNDARY
     # need this node to have its own key pair
     routemessage = utils.recv_message_with_length_prefix(prevhop)
@@ -80,11 +84,12 @@ def startSession(prevhop, mykey):
         utils.send_message_with_length_prefix(nexthop, nextmessage)
     #spawn forwarding and backwarding threads here
     fwd = threading.Thread(target=forwardingLoop, args=(prevhop, nexthop, aeskey))
-    #bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey))
+    bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey))
     fwd.start()
-    #bwd.start()
+    bwd.start()
     fwd.join()
-    #bwd.join()
+    bwd.join()
+    #print "node process " + str(os.getpid()) + " is closing! Bye bye!"
     return
 
 def forwardingLoop(prevhop, nexthop, aeskey):
@@ -92,18 +97,28 @@ def forwardingLoop(prevhop, nexthop, aeskey):
         message = utils.recv_message_with_length_prefix(prevhop)
         if message == "":
             #closing sockets may screw with other threads that use them
-            print "process " + str(os.getpid()) + " closing forwardingLoop"
-            #prevhop.close()
-            #nexthop.close()
+            #print "process " + str(os.getpid()) + " closing forwardingLoop"
+            try:
+                prevhop.shutdown(socket.SHUT_RDWR)
+                nexthop.shutdown(socket.SHUT_RDWR)
+            except socket.error, e:
+                pass
             return
         # unwrap the message or something - in spec
-        print "process " + str(os.getpid()) + "got message: " + message
+        #print "process " + str(os.getpid()) + "got message: " + message
         message = utils.peel_layer(message, aeskey)
-        bytessent = utils.send_message_with_length_prefix(nexthop, message)
+        bytessent = 0
+        try:
+            bytessent = utils.send_message_with_length_prefix(nexthop, message)
+        except socket.error, e:
+            pass
         if bytessent == 0:
-            print "process " + str(os.getpid()) + " closing forwardingLoop"
-            #prevhop.close()
-            #nexthop.close()
+            #print "process " + str(os.getpid()) + " closing forwardingLoop"
+            try:
+                prevhop.shutdown(socket.SHUT_RDWR)
+                nexthop.shutdown(socket.SHUT_RDWR)
+            except socket.error, e:
+                pass
             return
 
 def backwardingLoop(prevhop, nexthop, aeskey):
@@ -111,23 +126,33 @@ def backwardingLoop(prevhop, nexthop, aeskey):
         message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
             #closing sockets may screw with other threads that use them
-            print "process " + str(os.getpid()) + " closing backwardingLoop"
-            #prevhop.close()
-            #nexthop.close()
+            #print "process " + str(os.getpid()) + " closing backwardingLoop"
+            try:
+                prevhop.shutdown(socket.SHUT_RDWR)
+                nexthop.shutdown(socket.SHUT_RDWR)
+            except socket.error, e:
+                pass
             return
         # wrap the message or something - in spec
         message = utils.add_layer(message, aeskey)
-        bytessent = utils.send_message_with_length_prefix(prevhop, message)
+        bytessent = 0
+        try:
+            bytessent = utils.send_message_with_length_prefix(prevhop, message)
+        except socket.error, e:
+            pass
         if bytessent == 0:
-            print "process " + str(os.getpid()) + "closing backwardingLoop"
-            #prevhop.close()
-            #nexthop.close()
+            #print "process " + str(os.getpid()) + "closing backwardingLoop"
+            try:
+                prevhop.shutdown(socket.SHUT_RDWR)
+                nexthop.shutdown(socket.SHUT_RDWR)
+            except socket.error, e:
+                pass
             return
 
 def peelRoute(message, mykey):
     message, aeskey = utils.unwrap_message(message, mykey)
     host, port = utils.unpackHostPort(message[:8])
-    print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
+    #print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
     hostport = message[:8]
     nextmessage = message[8:] #if nextmessage is an empty string, I'm an exit node
     return (aeskey, hostport, nextmessage)

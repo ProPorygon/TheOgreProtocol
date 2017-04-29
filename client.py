@@ -29,22 +29,29 @@ def main():
 
 
 def run_client(hoplist, destination):
-	print "my pid is " + str(os.getpid())
+	print "client pid is " + str(os.getpid())
 	next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	next_host = (hoplist[len(hoplist)-1][0], hoplist[len(hoplist)-1][1])
 	next_s.connect(next_host)
 	# Generate wrapped message
 	wrapped_message, aes_key_list = utils.wrap_all_messages(hoplist, destination)
-	print "AES key list length" + str(len(aes_key_list))
-	print "hoplist length " + str(len(hoplist))
+	#print "AES key list length" + str(len(aes_key_list))
+	#print "hoplist length " + str(len(hoplist))
 	utils.send_message_with_length_prefix(next_s, wrapped_message)
-	while(True):
-		message = "hi"#raw_input()
-		print len(message)
+	while True:
+		message = raw_input()
 		message = utils.add_all_layers(aes_key_list, message)
-		utils.send_message_with_length_prefix(next_s, message) #TODO: check retval of this for node disconnect
-		response = utils.recv_message_with_length_prefix(next_s)
-		#response = utils.peel_all_layers(aes_key_list, response)
+		try:
+			utils.send_message_with_length_prefix(next_s, message) #TODO: check retval of this for node disconnect
+		except socket.error, e:
+			print "client detected node closing, finished!"
+			return
+		try:
+			response = utils.recv_message_with_length_prefix(next_s)
+		except socket.error, e:
+			print "client detected node closing, finished!"
+			return
+		response = utils.peel_all_layers(aes_key_list, response)
 		print response
 
 
