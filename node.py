@@ -65,10 +65,10 @@ def main():
     while numsessions < maxsessions:#True:
         clientsocket, addr = s.accept()
         print "New session starting on process " + str(os.getpid())
-        threading.Thread(target=startSession, args=(clientsocket, mykey)).start()
+        threading.Thread(target=startSession, args=(clientsocket, mykey, args.exit)).start()
         numsessions += 1
 
-def startSession(prevhop, mykey):
+def startSession(prevhop, mykey, is_exit):
     #print "Node got contact from client! Starting session!"
     # THREAD BOUNDARY
     # need this node to have its own key pair
@@ -84,7 +84,7 @@ def startSession(prevhop, mykey):
         utils.send_message_with_length_prefix(nexthop, nextmessage)
     #spawn forwarding and backwarding threads here
     fwd = threading.Thread(target=forwardingLoop, args=(prevhop, nexthop, aeskey))
-    bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey))
+    bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey, is_exit))
     fwd.start()
     bwd.start()
     fwd.join()
@@ -121,7 +121,7 @@ def forwardingLoop(prevhop, nexthop, aeskey):
                 pass
             return
 
-def backwardingLoop(prevhop, nexthop, aeskey):
+def backwardingLoop(prevhop, nexthop, aeskey, is_exit=False):
     while True:
         message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
@@ -134,7 +134,10 @@ def backwardingLoop(prevhop, nexthop, aeskey):
                 pass
             return
         # wrap the message or something - in spec
-        message = utils.add_layer(message, aeskey)
+        if(is_exit):
+            message = utils.add_layer(utils.pad_message(message), aeskey)
+        else:
+            message = utils.add_layer(message, aeskey)
         bytessent = 0
         try:
             bytessent = utils.send_message_with_length_prefix(prevhop, message)
