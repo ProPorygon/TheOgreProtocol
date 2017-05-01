@@ -5,6 +5,7 @@ import socket
 import random
 import utils
 import sys
+from termcolor import colored
 
 def main():
     RSA_KEY_SIZE = 212
@@ -56,7 +57,7 @@ def main():
             node_addr = msg[:8]
             key = msg[8:]
             relay_nodes[node_addr] = key
-            print "directory authority successfully registered a relay node!"
+            print colored("DA["+da_port+"]: registered a relay node on port " + str(utils.unpackHostPort(node_addr)[1]), 'green')
 
         elif request_type == 'e': #exit node
             msg = utils.recvn(clientsocket,RSA_KEY_SIZE+8)
@@ -66,7 +67,7 @@ def main():
             node_addr = msg[:8]
             key = msg[8:]
             exit_nodes[node_addr] = key
-            print "directory authority successfully registered an exit node!"
+            print colored("DA["+da_port+"]: registered an exit node on port " + str(utils.unpackHostPort(node_addr)[1]), 'green')
 
         elif request_type == 'r': #route
 
@@ -84,6 +85,7 @@ def main():
             aes_obj = AES.new(aes_key, AES.MODE_CBC, "0"*16)
             blob = aes_obj.encrypt(utils.pad_message(route_message))
             utils.send_message_with_length_prefix(clientsocket,blob)
+            print colored("DA["+da_port+"]: sent a route to a client", 'green')
 
         clientsocket.close()
 

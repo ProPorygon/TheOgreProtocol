@@ -5,6 +5,7 @@ import socket
 import utils
 import sys
 import os
+from termcolor import colored
 
 def main():
 	DA_IP = sys.argv[1]
@@ -49,7 +50,7 @@ def main():
 
 
 def run_client(hoplist, destination):
-	print "client pid is " + str(os.getpid())
+	#print "client pid is " + str(os.getpid())
 	next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	next_host = (hoplist[len(hoplist)-1][0], hoplist[len(hoplist)-1][1])
 	next_s.connect(next_host)
@@ -58,10 +59,12 @@ def run_client(hoplist, destination):
 	#print "AES key list length" + str(len(aes_key_list))
 	#print "hoplist length " + str(len(hoplist))
 	utils.send_message_with_length_prefix(next_s, wrapped_message)
-	print "sent the wrapped message"
+	#print "sent the wrapped message"
 	while True:
-		#message = raw_input()
-		message = "Hi, Kevin"
+		print colored("CLIENT: Type some text to send to the client.",'yellow')
+
+		message = raw_input()
+		#message = "Hi, Kevin"
 		message = utils.add_all_layers(aes_key_list, message)
 		try:
 			utils.send_message_with_length_prefix(next_s, message) #TODO: check retval of this for node disconnect
@@ -74,7 +77,7 @@ def run_client(hoplist, destination):
 			print "client detected node closing, finished!"
 			return
 		response = utils.peel_all_layers(aes_key_list, response)
-		print response
+		print colored("CLIENT: response from server:" + response,'yellow')
 
 
 if __name__ == "__main__":

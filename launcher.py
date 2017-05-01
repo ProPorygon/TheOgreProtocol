@@ -29,6 +29,6 @@ for port in ports[-1*num_exits:]:
 	os.system("python node.py " + str(port) + " 127.0.0.1 " + str(args.dir_auth_port) + " --exit &")
 	time.sleep(1)
 #subprocess.call(["python", "directory_authority.py", "7077"])
-os.system("python client.py " + "127.0.0.1 " + str(args.dir_auth_port) + " 127.0.0.1 " +str(args.dest_port)+ " &")
+os.system("python client.py " + "127.0.0.1 " + str(args.dir_auth_port) + " 127.0.0.1 " +str(args.dest_port))#+ " &")
 
 print "launcher done"
