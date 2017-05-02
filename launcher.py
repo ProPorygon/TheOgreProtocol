@@ -4,6 +4,10 @@ import os
 import argparse
 import random
 import time
+import signal
+import utils
+
+signal.signal(signal.SIGINT, utils.signal_handler)
 
 num_relays = 3
 num_exits = 2
@@ -32,3 +36,6 @@ for port in ports[-1*num_exits:]:
 os.system("python client.py " + "127.0.0.1 " + str(args.dir_auth_port) + " 127.0.0.1 " +str(args.dest_port))#+ " &")
 
 print "launcher done"
+
+while True:
+	pass

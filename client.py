@@ -47,6 +47,7 @@ def main():
     # hoplist format (ip, port, public_key)
     # Replace this with processed route and key data
     hoplist = utils.process_route(hop_data)
+    hoplist = list(reversed(hoplist))
 
     # Send keys and establish link
     run_client(hoplist, utils.packHostPort(DEST_HOST, int(DEST_PORT)))

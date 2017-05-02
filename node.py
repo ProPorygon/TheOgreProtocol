@@ -115,7 +115,7 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         # print str(os.getpid()) + " " + str(len(message))
         message = utils.peel_layer(message, aeskey)
         if is_exit:
-            # print "process " + str(os.getpid()) + " this is an exit node"
+            print "process " + str(os.getpid()) + " this is an exit node"
             message = utils.unpad_message(message)
         print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
