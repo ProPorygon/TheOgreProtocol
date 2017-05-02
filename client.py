@@ -56,7 +56,10 @@ def run_client(hoplist, destination):
         except socket.error, e:
             print "client detected node closing, finished!"
             return
-        response = utils.peel_all_layers(aes_key_list, response)
+        if len(response) == 0:
+            print "Message error occurred"
+        else:
+            response = utils.peel_all_layers(aes_key_list, response)
         print response
 
 

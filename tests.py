@@ -75,7 +75,10 @@ class TestMethods(unittest.TestCase):
 
         for i in range(0,len(portno)):
             hoplist.append(("127.0.0.1", portno[i], mykey))
-            os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --exit --dbg &")
+            if i == 0:
+                os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --exit --dbg &")
+            else:
+                os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --dbg &")
             time.sleep(1)
         client.run_client(hoplist, utils.packHostPort("127.0.0.1", 5769))
 

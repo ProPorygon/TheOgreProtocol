@@ -83,7 +83,7 @@ def startSession(prevhop, mykey, is_exit):
     if nextmessage != "":
         utils.send_message_with_length_prefix(nexthop, nextmessage)
     #spawn forwarding and backwarding threads here
-    fwd = threading.Thread(target=forwardingLoop, args=(prevhop, nexthop, aeskey))
+    fwd = threading.Thread(target=forwardingLoop, args=(prevhop, nexthop, aeskey, is_exit))
     bwd = threading.Thread(target=backwardingLoop, args=(prevhop, nexthop, aeskey, is_exit))
     fwd.start()
     bwd.start()
@@ -92,7 +92,7 @@ def startSession(prevhop, mykey, is_exit):
     #print "node process " + str(os.getpid()) + " is closing! Bye bye!"
     return
 
-def forwardingLoop(prevhop, nexthop, aeskey):
+def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
         message = utils.recv_message_with_length_prefix(prevhop)
         if message == "":
@@ -105,15 +105,20 @@ def forwardingLoop(prevhop, nexthop, aeskey):
                 pass
             return
         # unwrap the message or something - in spec
-        #print "process " + str(os.getpid()) + "got message: " + message
+        # print "process " + str(os.getpid()) + " got message: " + message
+        # print str(os.getpid()) + " " + str(len(message))
         message = utils.peel_layer(message, aeskey)
+        if is_exit:
+            # print "process " + str(os.getpid()) + " this is an exit node"
+            message = utils.unpad_message(message)
+        print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
         try:
             bytessent = utils.send_message_with_length_prefix(nexthop, message)
         except socket.error, e:
             pass
         if bytessent == 0:
-            #print "process " + str(os.getpid()) + " closing forwardingLoop"
+            print "process " + str(os.getpid()) + " closing forwardingLoop"
             try:
                 prevhop.shutdown(socket.SHUT_RDWR)
                 nexthop.shutdown(socket.SHUT_RDWR)
@@ -121,7 +126,7 @@ def forwardingLoop(prevhop, nexthop, aeskey):
                 pass
             return
 
-def backwardingLoop(prevhop, nexthop, aeskey, is_exit=False):
+def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
         message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
@@ -154,8 +159,9 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit=False):
 
 def peelRoute(message, mykey):
     message, aeskey = utils.unwrap_message(message, mykey)
+    message = utils.unpad_message(message)
     host, port = utils.unpackHostPort(message[:8])
-    #print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
+    print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
     hostport = message[:8]
     nextmessage = message[8:] #if nextmessage is an empty string, I'm an exit node
     return (aeskey, hostport, nextmessage)

@@ -170,6 +170,7 @@ def add_all_layers(aes_key_list, message):
 def peel_all_layers(aes_key_list, response):
     for i in reversed(range(0, len(aes_key_list))):
         response = peel_layer(response, aes_key_list[i])
+    # print len(response)
     response = unpad_message(response)
     return response
 
