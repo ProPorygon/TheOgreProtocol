@@ -9,6 +9,7 @@ import signal
 
 import client
 
+
 class TestMethods(unittest.TestCase):
     # def test_wrap_unwrap(self):
     #     rsa_key = RSA.generate(1024)
@@ -73,14 +74,17 @@ class TestMethods(unittest.TestCase):
 
         #os.system("nc -l 5269 &")
 
-        for i in range(0,len(portno)):
+        for i in range(0, len(portno)):
             hoplist.append(("127.0.0.1", portno[i], mykey))
             if i == 0:
-                os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --exit --dbg &")
+                os.system(
+                    "python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --exit --dbg &")
             else:
-                os.system("python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --dbg &")
+                os.system(
+                    "python node.py " + str(portno[i]) + " 127.0.0.1 " + str(dir_no_auth) + " --dbg &")
             time.sleep(1)
         client.run_client(hoplist, utils.packHostPort("127.0.0.1", 5769))
+
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, utils.signal_handler)
