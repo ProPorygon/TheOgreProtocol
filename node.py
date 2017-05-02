@@ -9,6 +9,9 @@ import threading
 import argparse
 import signal
 import os
+from termcolor import colored
+
+portstring = ""
 
 def main():
     parser = argparse.ArgumentParser()
@@ -23,6 +26,8 @@ def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     myip = '127.0.0.1' #loopback only for now
     s.bind((myip, args.portno))
+    global portstring
+    portstring = str(args.portno)
     s.listen(1)
     randfile = Random.new()
 
@@ -49,13 +54,14 @@ def main():
         if result == 0:
             print "The directory authority went offline during registration! Terminating relay process..."
             sys.exit(1)
-        result = utils.sendn(dir_auth, mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1))
+        msg = utils.packHostPort(myip,args.portno) + mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1)
+        result = utils.sendn(dir_auth, msg)
         # print result
         if result == 0:
             print "The directory authority went offline during registration! Terminating relay process..."
         dir_auth.close()
 
-    print "Successfully registered! Process " + str(os.getpid()) + " is listening for client connections on port " + str(args.portno)
+    #print "Successfully registered! Process " + str(os.getpid()) + " is listening for client connections on port " + str(args.portno)
 
     #TODO replace this old code
     # Listen for connections
@@ -64,7 +70,7 @@ def main():
     #The while condition here dictates how long the node is up
     while numsessions < maxsessions:#True:
         clientsocket, addr = s.accept()
-        print "New session starting on process " + str(os.getpid())
+        print colored("N[" + portstring + "]: New session started", 'cyan')
         threading.Thread(target=startSession, args=(clientsocket, mykey, args.exit)).start()
         numsessions += 1
 
@@ -115,6 +121,7 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         bytessent = 0
         try:
             bytessent = utils.send_message_with_length_prefix(nexthop, message)
+            print colored("N[" + portstring + "]: Hopped forwards", 'cyan')
         except socket.error, e:
             pass
         if bytessent == 0:
@@ -146,6 +153,7 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
         bytessent = 0
         try:
             bytessent = utils.send_message_with_length_prefix(prevhop, message)
+            print colored("N[" + portstring + "]: Hopped backwards", 'cyan')
         except socket.error, e:
             pass
         if bytessent == 0:

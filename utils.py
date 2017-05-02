@@ -177,11 +177,14 @@ def peel_all_layers(aes_key_list, response):
 
 def process_route(data):
     hoplist = []
-    while data != "":
-        rsa_key = ""
+    for a in range(3):
+        rsa_key = data[8:220]
         hostport = unpackHostPort(data[:8])
-        hoplist.append(hostport[0], hostport[1], rsa_key)
-        data = data[:8]
+        #print hostport[0]
+        #print hostport[1]
+        #print rsa_key
+        hoplist.append((hostport[0], hostport[1], RSA.importKey(rsa_key)))
+        data = data[220:]
     return hoplist
 
 
