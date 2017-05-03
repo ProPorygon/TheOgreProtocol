@@ -65,14 +65,14 @@ def main():
 
     #TODO replace this old code
     # Listen for connections
-    maxsessions = 1
-    numsessions = 0
+    #maxsessions = 1
+    #numsessions = 0
     #The while condition here dictates how long the node is up
-    while numsessions < maxsessions:#True:
+    while True:
         clientsocket, addr = s.accept()
         print colored("N[" + portstring + "]: New session started", 'cyan')
         threading.Thread(target=startSession, args=(clientsocket, mykey, args.exit)).start()
-        numsessions += 1
+        #numsessions += 1
 
 def startSession(prevhop, mykey, is_exit):
     #print "Node got contact from client! Starting session!"
