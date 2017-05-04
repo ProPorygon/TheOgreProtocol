@@ -120,7 +120,10 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
         try:
-            bytessent = utils.send_message_with_length_prefix(nexthop, message)
+            if is_exit:
+                bytessent = nexthop.send(message)
+            else:
+                bytessent = utils.send_message_with_length_prefix(nexthop, message)
             print colored("N[" + portstring + "]: Hopped forwards", 'cyan')
         except socket.error, e:
             pass
@@ -135,7 +138,10 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
 
 def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
-        message = utils.recv_message_with_length_prefix(nexthop)
+        if is_exit:
+            message = nexthop.recv(1024)
+        else:
+            message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
             #closing sockets may screw with other threads that use them
             #print "process " + str(os.getpid()) + " closing backwardingLoop"
