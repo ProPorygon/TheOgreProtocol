@@ -6,6 +6,7 @@ import utils
 import sys
 import os
 import threading
+import re
 from termcolor import colored
 
 
@@ -62,24 +63,6 @@ def run_client(hoplist, client_host):
     proxySocket.bind(client_host)
     proxySocket.listen(10)
     while True:
-        # print colored("CLIENT: Type some text to send to the client.", 'yellow')
-        #
-        # message = raw_input()
-        # #message = "Hi, Kevin"
-        # message = utils.add_all_layers(aes_key_list, message)
-        # try:
-        #     # TODO: check retval of this for node disconnect
-        #     utils.send_message_with_length_prefix(next_s, message)
-        # except socket.error, e:
-        #     print "client detected node closing, finished!"
-        #     return
-        # try:
-        #     response = utils.recv_message_with_length_prefix(next_s)
-        # except socket.error, e:
-        #     print "client detected node closing, finished!"
-        #     return
-        # response = utils.peel_all_layers(aes_key_list, response)
-        # print colored("CLIENT: response from server:" + response, 'yellow')
         print "Waiting for Client connection on port " + str(client_host[1])
         (con_socket, con_addr) = proxySocket.accept()
         d = threading.Thread(name="Client", target=proxy_thread, args=(con_socket, con_addr, hoplist))
@@ -90,7 +73,7 @@ def run_client(hoplist, client_host):
 def proxy_thread(conn, client_addr, hoplist):
     print "thread launched"
     request = conn.recv(2048)
-    print request
+    # print request
     first_line = request.split('\n')[0]
     url = first_line.split(' ')[1]
 
@@ -115,8 +98,9 @@ def proxy_thread(conn, client_addr, hoplist):
         port = int((temp[(port_pos + 1):])[:webserver_pos - port_pos - 1])
         webserver = temp[:port_pos]
 
-    print webserver
-    print port
+    request = re.sub(r"http:\/\/.*?(?=\/)", "", request)
+
+    webserver = socket.gethostbyname(webserver)
     destination = utils.packHostPort(webserver, port)
     next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_host = (hoplist[len(hoplist) - 1][0], hoplist[len(hoplist) - 1][1])

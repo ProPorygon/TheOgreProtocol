@@ -115,13 +115,14 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         # print str(os.getpid()) + " " + str(len(message))
         message = utils.peel_layer(message, aeskey)
         if is_exit:
-            print "process " + str(os.getpid()) + " this is an exit node"
+            # print "process " + str(os.getpid()) + " this is an exit node"
             message = utils.unpad_message(message)
         print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
         try:
             if is_exit:
-                bytessent = nexthop.send(message)
+                # print message
+                bytessent = nexthop.sendall(message)
             else:
                 bytessent = utils.send_message_with_length_prefix(nexthop, message)
             print colored("N[" + portstring + "]: Hopped forwards", 'cyan')
@@ -138,8 +139,15 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
 
 def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
+        message = ""
         if is_exit:
-            message = nexthop.recv(1024)
+            while True:
+                data = nexthop.recv(1024)
+                if len(data) > 0:
+                    message += data
+                else:
+                    break
+            print "Message: " + message
         else:
             message = utils.recv_message_with_length_prefix(nexthop)
         if message == "":
@@ -152,7 +160,7 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
                 pass
             return
         # wrap the message or something - in spec
-        if(is_exit):
+        if is_exit:
             message = utils.add_layer(utils.pad_message(message), aeskey)
         else:
             message = utils.add_layer(message, aeskey)
