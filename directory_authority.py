@@ -27,7 +27,7 @@ def main():
     if len(sys.argv) > 1:
         da_port = sys.argv[1]
     else:
-        print "No DA Port Specified!! Exiting..."
+        print colored("Directory Authority: No DA Port Specified!! Exiting...", 'green')
         quit()
 
 

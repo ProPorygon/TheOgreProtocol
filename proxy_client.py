@@ -33,7 +33,7 @@ def main():
     succ = utils.send_message_with_length_prefix(s, aes_msg)
     if not succ:
         s.close()
-        print "Directory authority connection failed"
+        print colored("Proxy Client: Directory authority connection failed", 'yellow')
         quit()
 
     # Receive
@@ -41,7 +41,7 @@ def main():
         s)  # All info from directory authority
     if data == "":
         s.close()
-        print "Directory authority connection failed"
+        print colored("Proxy Client: Directory authority connection failed", 'yellow')
         quit()
 
     hop_data = aes_obj.decrypt(data)
@@ -62,8 +62,8 @@ def run_client(hoplist, client_host):
     proxySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     proxySocket.bind(client_host)
     proxySocket.listen(10)
+    print colored("Proxy Client: Waiting for Client connection on port " + str(client_host[1]), 'yellow')
     while True:
-        print "Waiting for Client connection on port " + str(client_host[1])
         (con_socket, con_addr) = proxySocket.accept()
         d = threading.Thread(name="Client", target=proxy_thread, args=(con_socket, con_addr, hoplist))
         d.setDaemon(True)
@@ -71,10 +71,14 @@ def run_client(hoplist, client_host):
 
 
 def proxy_thread(conn, client_addr, hoplist):
-    print "thread launched"
-    request = conn.recv(2048)
+    #print "thread launched"
+    request = conn.recv(2048) #FIXME: handle closed socket on other side of connection, also why 2048?
     # print request
     first_line = request.split('\n')[0]
+    splitlist = first_line.split(' ')
+    if len(splitlist) < 2:
+        conn.close()
+        return #This is a fix for the 'index out of range' error we've seen
     url = first_line.split(' ')[1]
 
     http_pos = url.find("://")
@@ -100,7 +104,7 @@ def proxy_thread(conn, client_addr, hoplist):
 
     request = re.sub(r"http:\/\/.*?(?=\/)", "", request)
 
-    webserver = socket.gethostbyname(webserver)
+    webserver = socket.gethostbyname(webserver) #FIXME: what happens if i type a random url that doesn't resolve?
     destination = utils.packHostPort(webserver, port)
     next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_host = (hoplist[len(hoplist) - 1][0], hoplist[len(hoplist) - 1][1])
@@ -110,12 +114,29 @@ def proxy_thread(conn, client_addr, hoplist):
         hoplist, destination)
     # print "AES key list length" + str(len(aes_key_list))
     # print "hoplist length " + str(len(hoplist))
-    utils.send_message_with_length_prefix(next_s, wrapped_message)
+    
+    sendret = 0
+    sendret = utils.send_message_with_length_prefix(next_s, wrapped_message)
+    if sendret == 0:
+        conn.close()
+        next_s.shutdown(SHUT_RDWR)
+        return
 
     request = utils.add_all_layers(aes_key_list, request)
-    utils.send_message_with_length_prefix(next_s, request)
-    data = utils.recv_message_with_length_prefix(next_s)
-    conn.send(utils.peel_all_layers(aes_key_list, data))
+    sendret = utils.send_message_with_length_prefix(next_s, request)
+    if sendret == 0:
+        conn.close()
+        next_s.shutdown(SHUT_RDWR)
+        return
+    try:
+        data = utils.recv_message_with_length_prefix(next_s)
+    except socket.error, e:
+        data = ""
+    if data == "":
+        conn.close()
+        next_s.shutdown(SHUT_RDWR)
+        return
+    conn.send(utils.peel_all_layers(aes_key_list, data)) #FIXME: handle closed socket on other side of connection
     conn.close()
 
 if __name__ == "__main__":

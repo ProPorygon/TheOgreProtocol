@@ -52,13 +52,13 @@ def main():
         else:
             result = dir_auth.send("n")
         if result == 0:
-            print "The directory authority went offline during registration! Terminating relay process..."
+            print colored("N[" + portstring + "]: The directory authority went offline during registration! Terminating relay process...", 'cyan')
             sys.exit(1)
         msg = utils.packHostPort(myip,args.portno) + mykey.exportKey(format = "OpenSSH", passphrase=None, pkcs = 1)
         result = utils.sendn(dir_auth, msg)
         # print result
         if result == 0:
-            print "The directory authority went offline during registration! Terminating relay process..."
+            print colored("N[" + portstring + "]: The directory authority went offline during registration! Terminating relay process...", 'cyan')
         dir_auth.close()
 
     #print "Successfully registered! Process " + str(os.getpid()) + " is listening for client connections on port " + str(args.portno)
@@ -70,15 +70,17 @@ def main():
     #The while condition here dictates how long the node is up
     while True:
         clientsocket, addr = s.accept()
-        print colored("N[" + portstring + "]: New session started", 'cyan')
         threading.Thread(target=startSession, args=(clientsocket, mykey, args.exit)).start()
-        #numsessions += 1
+        print colored("N[" + portstring + "]: New session started", 'cyan')
 
 def startSession(prevhop, mykey, is_exit):
     #print "Node got contact from client! Starting session!"
     # THREAD BOUNDARY
     # need this node to have its own key pair
-    routemessage = utils.recv_message_with_length_prefix(prevhop)
+    try:
+        routemessage = utils.recv_message_with_length_prefix(prevhop)
+    except socket.error, e:
+        routemessage = ""
     if routemessage == "":
         #kill this thread
         return
@@ -100,7 +102,10 @@ def startSession(prevhop, mykey, is_exit):
 
 def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
-        message = utils.recv_message_with_length_prefix(prevhop)
+        try:
+            message = utils.recv_message_with_length_prefix(prevhop)
+        except socket.error, e:
+            message = ""
         if message == "":
             #closing sockets may screw with other threads that use them
             #print "process " + str(os.getpid()) + " closing forwardingLoop"
@@ -117,7 +122,7 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         if is_exit:
             # print "process " + str(os.getpid()) + " this is an exit node"
             message = utils.unpad_message(message)
-        print str(os.getpid()) + " " + str(len(message))
+        #print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
         try:
             if is_exit:
@@ -129,7 +134,7 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
         except socket.error, e:
             pass
         if bytessent == 0:
-            print "process " + str(os.getpid()) + " closing forwardingLoop"
+            print colored("N[" + portstring + "]: process " + str(os.getpid()) + " closing forwardingLoop", 'cyan')
             try:
                 prevhop.shutdown(socket.SHUT_RDWR)
                 nexthop.shutdown(socket.SHUT_RDWR)
@@ -147,9 +152,12 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
                     message += data
                 else:
                     break
-            print "Message: " + message
+            #print "Message: " + message
         else:
-            message = utils.recv_message_with_length_prefix(nexthop)
+            try:
+                message = utils.recv_message_with_length_prefix(nexthop)
+            except socket.error, e:
+                message = ""
         if message == "":
             #closing sockets may screw with other threads that use them
             #print "process " + str(os.getpid()) + " closing backwardingLoop"
@@ -183,7 +191,7 @@ def peelRoute(message, mykey):
     message, aeskey = utils.unwrap_message(message, mykey)
     message = utils.unpad_message(message)
     host, port = utils.unpackHostPort(message[:8])
-    print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
+    #print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
     hostport = message[:8]
     nextmessage = message[8:] #if nextmessage is an empty string, I'm an exit node
     return (aeskey, hostport, nextmessage)
