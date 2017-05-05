@@ -114,19 +114,25 @@ def proxy_thread(conn, client_addr, hoplist):
         hoplist, destination)
     # print "AES key list length" + str(len(aes_key_list))
     # print "hoplist length " + str(len(hoplist))
-    
+
     sendret = 0
-    sendret = utils.send_message_with_length_prefix(next_s, wrapped_message)
+    try:
+        sendret = utils.send_message_with_length_prefix(next_s, wrapped_message)
+    except socket.error, e:
+        sendret = 0
     if sendret == 0:
         conn.close()
-        next_s.shutdown(SHUT_RDWR)
+        try:
+            next_s.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            return
         return
 
     request = utils.add_all_layers(aes_key_list, request)
     sendret = utils.send_message_with_length_prefix(next_s, request)
     if sendret == 0:
         conn.close()
-        next_s.shutdown(SHUT_RDWR)
+        next_s.shutdown(socket.SHUT_RDWR)
         return
     try:
         data = utils.recv_message_with_length_prefix(next_s)
@@ -134,7 +140,7 @@ def proxy_thread(conn, client_addr, hoplist):
         data = ""
     if data == "":
         conn.close()
-        next_s.shutdown(SHUT_RDWR)
+        next_s.shutdown(socket.SHUT_RDWR)
         return
     conn.send(utils.peel_all_layers(aes_key_list, data)) #FIXME: handle closed socket on other side of connection
     conn.close()

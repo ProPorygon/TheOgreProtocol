@@ -84,7 +84,11 @@ def startSession(prevhop, mykey, is_exit):
     if routemessage == "":
         #kill this thread
         return
-    aeskey, hostport, nextmessage = peelRoute(routemessage, mykey)
+    try:
+        aeskey, hostport, nextmessage = peelRoute(routemessage, mykey)
+    except ValueError:
+        prevhop.shutdown(socket.SHUT_RDWR)
+        return
     nexthost, nextport = utils.unpackHostPort(hostport)
     nexthop = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     nexthop.connect((nexthost, nextport))
