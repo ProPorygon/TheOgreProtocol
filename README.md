@@ -27,22 +27,30 @@ node to ensure anonymous traffic.
 
 ### Running
 1. Server
+
 The Ogre Protocol runs on local loopback. Use simplerecv.py as an endpoint for the protocol:
-	$python simplerecv.py [portno]
+
+	`$python simplerecv.py [portno]`
 
 simplerecv will wait for messages on [portno] indefinitely
 
 2. Ogre network
+
 In another terminal window, start up an instance of an Ogre network with launcher.py:
-	$python launcher.py [directory authority port] [destination port]
+
+	`$python launcher.py [directory authority port] [destination port]`
 
 launcher.py starts a directory authority on the specified port, several relay and exit 
 nodes, and a client. Provide the the simplerecv port number to connect to the correct server.
 
 Terminal output will be colored as follows:
+
 Activity from directory authority -> green
+
 Traffic from client -> yellow
+
 Traffic from server -> red
+
 Activity from nodes -> blue
 
 Once the simplerecv server and the launcher are run, messages can be sent back and forth between
@@ -50,23 +58,30 @@ the client and server. The "hopped forward" and "hopped backward" text show when
 through each node in the route.
 
 3. Additional processes
+
 Once the Ogre network is established on local loobpack, additional nodes and clients may be started
 indpendently.
-	$python node.py [portno] [dir_auth_ip] [dir_auth_port] [--exit]
-	$python client.py [dir_auth_ip] [dir_auth_port] [destination_ip] [destination_port]
+
+	`$python node.py [portno] [dir_auth_ip] [dir_auth_port] [--exit]`
+	
+	`$python client.py [dir_auth_ip] [dir_auth_port] [destination_ip] [destination_port]`
 
 If you want to set up an Ogre network without the launcher, you will need to start a directory
 authority:
-	$python directory_authority.py [portno]
+
+	`$python directory_authority.py [portno]`
 
 Make sure to clean up any python processes that are still running once you have finished using 
 The Ogre Protocol.
-	$sudo pkill python
+
+	`$sudo pkill python`
 
 4. The Ogre Protocol as HTTP Proxy
+
 Although it was not within the original scope of our project, the ogre protocol can be run as
 an HTTP proxy with a web browser. Use proxy_launcher.py to set up a proxy Ogre network.
-	$python proxy_launcher.py [directory authority port] [proxy server port]
+
+	`$python proxy_launcher.py [directory authority port] [proxy server port]`
 
 Then setup your web browser to route connections through [proxy server port] on localhost/127.0.0.1
 To do this with firefox, go to settings->advanced->network->connection. Because this team's project
