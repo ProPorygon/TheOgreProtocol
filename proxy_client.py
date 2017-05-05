@@ -6,17 +6,24 @@ import utils
 import sys
 import os
 import threading
+import argparse
 import re
 from termcolor import colored
 
 
 def main():
-    DA_IP = sys.argv[1]
-    DA_PORT = sys.argv[2]
-    CLI_ADDR = sys.argv[3]
-    CLI_PORT = sys.argv[4]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dir_auth_ip", help="the ip address of the directory authority")
+    parser.add_argument("dir_auth_port", help="the port number of the directory authority")
+    parser.add_argument("client_ip", help="the ip address of the proxy client")
+    parser.add_argument("client_port", help="the port number of the proxy client")
+    args = parser.parse_args()
 
-# TODO: Load this pub key from file
+    DA_IP = args.dir_auth_ip
+    DA_PORT = args.dir_auth_port
+    CLI_ADDR = args.client_ip
+    CLI_PORT = args.client_port
+
     da_file = open('dir_auth_pub_key.pem', 'r')
     da_pub_key = da_file.read()
     da_pub_key = RSA.importKey(da_pub_key)
@@ -56,8 +63,6 @@ def main():
 
 
 def run_client(hoplist, client_host):
-        # print "client pid is " + str(os.getpid())
-    # print "sent the wrapped message"
     proxySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     proxySocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     proxySocket.bind(client_host)

@@ -26,16 +26,12 @@ def unpad_message(message):
 
 
 def add_layer(message, aes_key):
-    # TODO: modify protocol so as not to add unnecessary padding blocks
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0" * 16)
     ciphertext = aes_obj.encrypt(message)
-    # print "add_layer: length of ciphertext is " + str(len(ciphertext))
     return ciphertext
 
 
 def peel_layer(ciphertext, aes_key):
-    # print str(os.getpid()) + 'tried to unpeel\nPeeling ciphertext: ' + ciphertext
-    # print "peel_layer: length of ciphertext is " + str(len(ciphertext))
     aes_obj = AES.new(aes_key, AES.MODE_CBC, "0" * 16)
     message = aes_obj.decrypt(ciphertext)
     return message
@@ -163,14 +159,12 @@ def add_all_layers(aes_key_list, message):
     message = pad_message(message)
     for key in aes_key_list:
         message = add_layer(message, key)
-    # print "The newly encrypted message is " + message
     return message
 
 
 def peel_all_layers(aes_key_list, response):
     for i in reversed(range(0, len(aes_key_list))):
         response = peel_layer(response, aes_key_list[i])
-    # print len(response)
     response = unpad_message(response)
     return response
 
@@ -180,15 +174,11 @@ def process_route(data):
     for a in range(3):
         rsa_key = data[8:220]
         hostport = unpackHostPort(data[:8])
-        #print hostport[0]
-        #print hostport[1]
-        #print rsa_key
         hoplist.append((hostport[0], hostport[1], RSA.importKey(rsa_key)))
         data = data[220:]
     return hoplist
 
 
 def signal_handler(received_signal, frame):
-    # Do stuff
     os.killpg(os.getpgid(0), signal.SIGINT)
     sys.exit(0)

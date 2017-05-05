@@ -2,12 +2,17 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import AES
 import socket
+import argparse
 import random
 import utils
 import sys
 from termcolor import colored
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dir_auth_port", help="the port number of the directory authority")
+    args = parser.parse_args()
+
     RSA_KEY_SIZE = 212
     NUM_NODES = 3
 
@@ -24,11 +29,7 @@ def main():
 
     #read in Port from command line args
     da_IP = "127.0.0.1"
-    if len(sys.argv) > 1:
-        da_port = sys.argv[1]
-    else:
-        print colored("Directory Authority: No DA Port Specified!! Exiting...", 'green')
-        quit()
+    da_port = args.dir_auth_port
 
 
 

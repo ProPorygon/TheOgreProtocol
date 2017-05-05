@@ -2,6 +2,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
 import socket
+import argparse
 import utils
 import sys
 import os
@@ -9,12 +10,18 @@ from termcolor import colored
 
 
 def main():
-    DA_IP = sys.argv[1]
-    DA_PORT = sys.argv[2]
-    DEST_HOST = sys.argv[3]
-    DEST_PORT = sys.argv[4]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dir_auth_ip", help="the ip address of the directory authority")
+    parser.add_argument("dir_auth_port", help="the port number of the directory authority")
+    parser.add_argument("destination_ip", help="the ip address of the destination")
+    parser.add_argument("destination_port", help="the port number of the destination")
+    args = parser.parse_args()
 
-# TODO: Load this pub key from file
+    DA_IP = args.dir_auth_ip
+    DA_PORT = args.dir_auth_port
+    DEST_HOST = args.destination_ip
+    DEST_PORT = args.destination_port
+
     da_file = open('dir_auth_pub_key.pem', 'r')
     da_pub_key = da_file.read()
     da_pub_key = RSA.importKey(da_pub_key)
@@ -54,25 +61,21 @@ def main():
 
 
 def run_client(hoplist, destination):
-        # print "client pid is " + str(os.getpid())
+
     next_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     next_host = (hoplist[len(hoplist) - 1][0], hoplist[len(hoplist) - 1][1])
     next_s.connect(next_host)
     # Generate wrapped message
     wrapped_message, aes_key_list = utils.wrap_all_messages(
         hoplist, destination)
-    # print "AES key list length" + str(len(aes_key_list))
-    # print "hoplist length " + str(len(hoplist))
-    utils.send_message_with_length_prefix(next_s, wrapped_message)
-    # print "sent the wrapped message"
-    while True:
-        print colored("CLIENT: Type some text to send to the client.", 'yellow')
 
+    utils.send_message_with_length_prefix(next_s, wrapped_message)
+
+    while True:
+        print colored("CLIENT: Type some text to send through the network.", 'yellow')
         message = raw_input()
-        #message = "Hi, Kevin"
         message = utils.add_all_layers(aes_key_list, message)
         try:
-            # TODO: check retval of this for node disconnect
             utils.send_message_with_length_prefix(next_s, message)
         except socket.error, e:
             print "client detected node closing, finished!"
@@ -83,7 +86,8 @@ def run_client(hoplist, destination):
             print "client detected node closing, finished!"
             return
         response = utils.peel_all_layers(aes_key_list, response)
-        print colored("CLIENT: response from server:" + response, 'yellow')
+        print colored("CLIENT: response from server:", 'red')
+        print colored(response, 'red')
 
 
 if __name__ == "__main__":

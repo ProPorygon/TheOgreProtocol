@@ -12,16 +12,19 @@ import os
 from termcolor import colored
 
 portstring = ""
+proxy = False
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--exit", help="run as an exit node", action="store_true")
     parser.add_argument("--dbg", help="use public.pem and private.pem", action="store_true")
+    parser.add_argument("--proxy", help="run as http proxy node", action="store_true")
     parser.add_argument("portno", type=int, help="the port this node should listen on")
     parser.add_argument("dir_auth_ip", help="the ip address of the directory authority")
     parser.add_argument("dir_auth_port", type=int, help="the port number of the directory authority")
     args = parser.parse_args()
-
+    global proxy
+    proxy = args.proxy
     # Set up listening server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     myip = '127.0.0.1' #loopback only for now
@@ -34,13 +37,9 @@ def main():
     # Generate RSA keys, register self with directory authority
     mykey = RSA.generate(1024)
     if args.dbg:
-        # f = open('public.pem', 'r')
-        # public = f.read()
-        # f.close()
         f = open('private.pem', 'r')
         private = f.read()
         f.close()
-        # mykey = RSA.importKey(public)
         mykey = RSA.importKey(private)
     else:
         dir_auth = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,12 +60,6 @@ def main():
             print colored("N[" + portstring + "]: The directory authority went offline during registration! Terminating relay process...", 'cyan')
         dir_auth.close()
 
-    #print "Successfully registered! Process " + str(os.getpid()) + " is listening for client connections on port " + str(args.portno)
-
-    #TODO replace this old code
-    # Listen for connections
-    #maxsessions = 1
-    #numsessions = 0
     #The while condition here dictates how long the node is up
     while True:
         clientsocket, addr = s.accept()
@@ -74,7 +67,6 @@ def main():
         print colored("N[" + portstring + "]: New session started", 'cyan')
 
 def startSession(prevhop, mykey, is_exit):
-    #print "Node got contact from client! Starting session!"
     # THREAD BOUNDARY
     # need this node to have its own key pair
     try:
@@ -101,7 +93,6 @@ def startSession(prevhop, mykey, is_exit):
     bwd.start()
     fwd.join()
     bwd.join()
-    #print "node process " + str(os.getpid()) + " is closing! Bye bye!"
     return
 
 def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
@@ -112,25 +103,18 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
             message = ""
         if message == "":
             #closing sockets may screw with other threads that use them
-            #print "process " + str(os.getpid()) + " closing forwardingLoop"
             try:
                 prevhop.shutdown(socket.SHUT_RDWR)
                 nexthop.shutdown(socket.SHUT_RDWR)
             except socket.error, e:
                 pass
             return
-        # unwrap the message or something - in spec
-        # print "process " + str(os.getpid()) + " got message: " + message
-        # print str(os.getpid()) + " " + str(len(message))
         message = utils.peel_layer(message, aeskey)
         if is_exit:
-            # print "process " + str(os.getpid()) + " this is an exit node"
             message = utils.unpad_message(message)
-        #print str(os.getpid()) + " " + str(len(message))
         bytessent = 0
         try:
-            if is_exit:
-                # print message
+            if (is_exit and proxy):
                 bytessent = nexthop.sendall(message)
             else:
                 bytessent = utils.send_message_with_length_prefix(nexthop, message)
@@ -149,14 +133,13 @@ def forwardingLoop(prevhop, nexthop, aeskey, is_exit):
 def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
     while True:
         message = ""
-        if is_exit:
+        if (is_exit and proxy):
             while True:
                 data = nexthop.recv(1024)
                 if len(data) > 0:
                     message += data
                 else:
                     break
-            #print "Message: " + message
         else:
             try:
                 message = utils.recv_message_with_length_prefix(nexthop)
@@ -164,14 +147,12 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
                 message = ""
         if message == "":
             #closing sockets may screw with other threads that use them
-            #print "process " + str(os.getpid()) + " closing backwardingLoop"
             try:
                 prevhop.shutdown(socket.SHUT_RDWR)
                 nexthop.shutdown(socket.SHUT_RDWR)
             except socket.error, e:
                 pass
             return
-        # wrap the message or something - in spec
         if is_exit:
             message = utils.add_layer(utils.pad_message(message), aeskey)
         else:
@@ -183,7 +164,6 @@ def backwardingLoop(prevhop, nexthop, aeskey, is_exit):
         except socket.error, e:
             pass
         if bytessent == 0:
-            #print "process " + str(os.getpid()) + "closing backwardingLoop"
             try:
                 prevhop.shutdown(socket.SHUT_RDWR)
                 nexthop.shutdown(socket.SHUT_RDWR)
@@ -195,7 +175,6 @@ def peelRoute(message, mykey):
     message, aeskey = utils.unwrap_message(message, mykey)
     message = utils.unpad_message(message)
     host, port = utils.unpackHostPort(message[:8])
-    #print "host: " + host + ", port: " + str(port) + "pid: " + str(os.getpid())
     hostport = message[:8]
     nextmessage = message[8:] #if nextmessage is an empty string, I'm an exit node
     return (aeskey, hostport, nextmessage)
